@@ -1,0 +1,25 @@
+name: proto-pr
+on:
+  push:
+    branches: [develop]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: open or update develop→main PR and enable auto-merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -e
+          n=$(gh pr list --repo "$REPO" --base main --head develop --state open --json number --jq '.[0].number')
+          if [ -z "$n" ]; then
+            gh pr create --repo "$REPO" --base main --head develop --title "proto: develop to main" --body "automated by workflow (author should be github-actions[bot])"
+            n=$(gh pr list --repo "$REPO" --base main --head develop --state open --json number --jq '.[0].number')
+          fi
+          echo "PR #$n"
+          gh pr merge "$n" --repo "$REPO" --auto --merge --match-head-commit "$SHA" && echo "auto-merge enabled" || echo "auto-merge enable FAILED"
